@@ -7,15 +7,30 @@
  *
  * @author User
  */
+import java.text.NumberFormat;
+import java.util.Locale;
+import java.awt.event.KeyEvent;
+
 public class FrmDiskon extends javax.swing.JFrame {
     
     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(FrmDiskon.class.getName());
 
+    private boolean isUpdating = false;
     /**
      * Creates new form FrmDiskon
      */
     public FrmDiskon() {
         initComponents();
+        jTextField1.addKeyListener(new java.awt.event.KeyAdapter() {
+        @Override
+        public void keyTyped(java.awt.event.KeyEvent evt) {
+            char c = evt.getKeyChar();
+            // Jika bukan angka, backspace, atau delete → cegah input
+            if (!Character.isDigit(c) && c != KeyEvent.VK_BACK_SPACE && c != KeyEvent.VK_DELETE) {
+                evt.consume(); // abaikan karakter
+            }
+        }
+    });
     }
 
     /**
@@ -245,6 +260,15 @@ public class FrmDiskon extends javax.swing.JFrame {
     try {
         // Ambil harga asli
         double hargaAsli = Double.parseDouble(jTextField1.getText().trim());
+        
+        // Validasi harga tidak boleh nol atau negatif
+        if (hargaAsli <= 0) {
+            javax.swing.JOptionPane.showMessageDialog(this,
+                "Harga harus lebih dari 0!",
+                "Input Tidak Valid",
+                javax.swing.JOptionPane.WARNING_MESSAGE);
+            return; // hentikan proses perhitungan
+        }
 
         // Ambil item dari ComboBox
         String selected = (String) jComboBox1.getSelectedItem();
@@ -280,13 +304,16 @@ public class FrmDiskon extends javax.swing.JFrame {
         double penghematan = hargaAsli * (diskonAkhir / 100);
         double hargaAkhir = hargaAsli - penghematan;
 
+        // Tambahkan format Rupiah lokal
+        NumberFormat rupiah = NumberFormat.getCurrencyInstance(new Locale("id", "ID"));
+        
         // Tampilkan hasil
         if (diskonAkhir == 0) {
-            jLabel4.setText(String.format("Harga Akhir: Rp %.2f", hargaAkhir));
-            jLabel5.setText("Tidak ada diskon diterapkan.");
+            jLabel4.setText ("Harga Akhir: " + rupiah.format(hargaAkhir));
+            jLabel5.setText ("Tidak ada diskon diterapkan.");
         } else {
-            jLabel4.setText(String.format("Harga Akhir: Rp %.2f", hargaAkhir));
-            jLabel5.setText(String.format("Penghematan: Rp %.2f (%.0f%%)", penghematan, diskonAkhir));
+            jLabel4.setText ("Harga Akhir: " + rupiah.format(hargaAkhir));
+            jLabel5.setText (String.format("Penghematan: Rp %.2f (%.0f%%)", penghematan, diskonAkhir));
         }
 
         // Tambahkan ke riwayat
@@ -294,6 +321,10 @@ public class FrmDiskon extends javax.swing.JFrame {
             "Harga Asli: Rp %.2f | Diskon: %.0f%% | Harga Akhir: Rp %.2f | Hemat: Rp %.2f\n",
             hargaAsli, diskonAkhir, hargaAkhir, penghematan
         ));
+        
+        //  Scroll otomatis ke bawah setiap kali menambah teks
+        jTextArea1.setCaretPosition(jTextArea1.getDocument().getLength());
+
 
     } catch (NumberFormatException e) {
         javax.swing.JOptionPane.showMessageDialog(this,
@@ -304,26 +335,31 @@ public class FrmDiskon extends javax.swing.JFrame {
     }//GEN-LAST:event_jButton1ActionPerformed
 
     private void jComboBox1ItemStateChanged(java.awt.event.ItemEvent evt) {//GEN-FIRST:event_jComboBox1ItemStateChanged
+    if (isUpdating) return; // cegah loop
+    
     String selected = (String) jComboBox1.getSelectedItem();
 
+    isUpdating = true; // mulai blok update
     if (selected != null && !selected.equals("Pilih Diskon")) {
-        // Hapus tanda % lalu ubah ke angka
         int diskon = Integer.parseInt(selected.replace("%", ""));
         jSlider1.setValue(diskon);
     } else {
-        // Jika user memilih "Pilih Diskon", set slider ke 0
         jSlider1.setValue(0);
-    }    // TODO add your handling code here:
+    }
+    isUpdating = false; // selesai update/ TODO add your handling code here:
     }//GEN-LAST:event_jComboBox1ItemStateChanged
 
     private void jSlider1StateChanged(javax.swing.event.ChangeEvent evt) {//GEN-FIRST:event_jSlider1StateChanged
+    if (isUpdating) return; // cegah loop
+    
     int nilai = jSlider1.getValue();
     jLabel2.setText(nilai + "%"); // tampilkan nilai slider di label
 
-    // Jika user menggeser slider secara manual, set combo ke "Pilih Diskon"
+    isUpdating = true; // mulai update
     if (jComboBox1.getSelectedIndex() != 0) {
         jComboBox1.setSelectedIndex(0);
-    }  // TODO add your handling code here:
+    }
+    isUpdating = false; // selesai update // TODO add your handling code here:
     }//GEN-LAST:event_jSlider1StateChanged
 
     private void jButton2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton2ActionPerformed
@@ -336,6 +372,7 @@ public class FrmDiskon extends javax.swing.JFrame {
     jSlider1.setValue(0);
     
     // Kosongkan hasil
+    jLabel2.setText("Diskon %");
     jLabel4.setText("Harga Akhir:");
     jLabel5.setText("Penghematan:");
     
